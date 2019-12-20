@@ -16,22 +16,18 @@
 
 package com.netflix.zuul.netty.server;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import com.netflix.netty.common.SourceAddressChannelHandler;
-import com.netflix.zuul.message.http.HttpRequestMessageImpl;
+import com.netflix.zuul.message.http.*;
+import com.netflix.zuul.message.http.HttpHeaderNames;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import static org.junit.Assert.*;
 
 /**
  * Unit tests for {@link ClientRequestReceiver}.
@@ -40,7 +36,7 @@ import org.junit.runners.JUnit4;
 public class ClientRequestReceiverTest {
     @Test
     public void largeResponse_atLimit() {
-        ClientRequestReceiver receiver = new ClientRequestReceiver(null);
+        ClientRequestReceiver receiver = new ClientRequestReceiver(null, null);
         EmbeddedChannel channel = new EmbeddedChannel(receiver);
         // Required for messages
         channel.attr(SourceAddressChannelHandler.ATTR_SERVER_LOCAL_PORT).set(1234);
@@ -71,7 +67,7 @@ public class ClientRequestReceiverTest {
 
     @Test
     public void largeResponse_aboveLimit() {
-        ClientRequestReceiver receiver = new ClientRequestReceiver(null);
+        ClientRequestReceiver receiver = new ClientRequestReceiver(null, null);
         EmbeddedChannel channel = new EmbeddedChannel(receiver);
         // Required for messages
         channel.attr(SourceAddressChannelHandler.ATTR_SERVER_LOCAL_PORT).set(1234);
@@ -98,6 +94,36 @@ public class ClientRequestReceiverTest {
         assertNotNull(result.getContext().getError());
         assertTrue(result.getContext().getError().getMessage().contains("too large"));
         assertTrue(result.getContext().shouldSendErrorResponse());
+        channel.close();
+    }
+
+    @Test
+    public void able_to_parse_cookies() {
+        final String TEST_COOKIE = "a=b";
+
+        ClientRequestReceiver receiver = new ClientRequestReceiver(null, new ZuulCookieParser());
+        EmbeddedChannel channel = new EmbeddedChannel(receiver);
+        // Required for messages
+        channel.attr(SourceAddressChannelHandler.ATTR_SERVER_LOCAL_PORT).set(1234);
+
+        HttpRequestMessageImpl result;
+        {
+            ByteBuf buf = Unpooled.buffer(1).writeByte('a');
+            // Add cookie to request headers
+            HttpHeaders headers = new DefaultHttpHeaders();
+            headers.add(HttpHeaderNames.COOKIE.getName(), TEST_COOKIE);
+            channel.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/post", buf, headers, new DefaultHttpHeaders()));
+            result = channel.readInbound();
+            result.disposeBufferedBody();
+        }
+
+        // Verify that we're able to parse cookies.
+        Cookies parsedCookies = result.parseCookies();
+        Cookie foundCookieValue = parsedCookies.getFirst("a");
+        assertNotNull(foundCookieValue);
+        assertEquals("b", foundCookieValue.value());
+
+        assertNull(result.getContext().getError());
         channel.close();
     }
 }

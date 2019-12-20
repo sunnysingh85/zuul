@@ -29,6 +29,8 @@ import com.netflix.zuul.RequestCompleteHandler;
 import com.netflix.zuul.context.SessionContextDecorator;
 import com.netflix.zuul.context.ZuulSessionContextDecorator;
 import com.netflix.zuul.init.ZuulFiltersModule;
+import com.netflix.zuul.message.http.CookieParser;
+import com.netflix.zuul.message.http.ZuulCookieParser;
 import com.netflix.zuul.netty.server.BaseServerStartup;
 import com.netflix.zuul.netty.server.ClientRequestReceiver;
 import com.netflix.zuul.origins.BasicNettyOriginManager;
@@ -66,5 +68,7 @@ public class ZuulSampleModule extends AbstractModule {
         // access logger, including request ID generator
         bind(AccessLogPublisher.class).toInstance(new AccessLogPublisher("ACCESS",
                 (channel, httpRequest) -> ClientRequestReceiver.getRequestFromChannel(channel).getContext().getUUID()));
+
+        bind(CookieParser.class).to(ZuulCookieParser.class);
     }
 }

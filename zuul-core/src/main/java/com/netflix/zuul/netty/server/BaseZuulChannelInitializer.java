@@ -46,6 +46,7 @@ import com.netflix.zuul.filters.ZuulFilter;
 import com.netflix.zuul.filters.passport.InboundPassportStampingFilter;
 import com.netflix.zuul.filters.passport.OutboundPassportStampingFilter;
 import com.netflix.zuul.message.ZuulMessage;
+import com.netflix.zuul.message.http.CookieParser;
 import com.netflix.zuul.message.http.HttpRequestMessage;
 import com.netflix.zuul.message.http.HttpResponseMessage;
 import com.netflix.zuul.netty.filter.FilterRunner;
@@ -133,6 +134,7 @@ public abstract class BaseZuulChannelInitializer extends ChannelInitializer<Chan
     protected final FilterLoader filterLoader;
     protected final FilterUsageNotifier filterUsageNotifier;
     protected final SourceAddressChannelHandler sourceAddressChannelHandler;
+    protected final CookieParser cookieParser;
 
     /** A collection of all the active channels that we can use to things like graceful shutdown */
     protected final ChannelGroup channels;
@@ -211,6 +213,7 @@ public abstract class BaseZuulChannelInitializer extends ChannelInitializer<Chan
         this.filterUsageNotifier = channelDependencies.get(ZuulDependencyKeys.filterUsageNotifier);
 
         this.sourceAddressChannelHandler = new SourceAddressChannelHandler();
+        this.cookieParser = channelDependencies.get(ZuulDependencyKeys.cookieParser);
     }
 
     protected void storeChannel(Channel ch)
@@ -308,7 +311,7 @@ public abstract class BaseZuulChannelInitializer extends ChannelInitializer<Chan
     protected void addZuulHandlers(final ChannelPipeline pipeline)
     {
         pipeline.addLast("logger", nettyLogger);
-        pipeline.addLast(new ClientRequestReceiver(sessionContextDecorator));
+        pipeline.addLast(new ClientRequestReceiver(sessionContextDecorator, cookieParser));
         pipeline.addLast(passportLoggingHandler);
         addZuulFilterChainHandler(pipeline);
         pipeline.addLast(new ClientResponseWriter(requestCompleteHandler, registry));

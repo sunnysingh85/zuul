@@ -38,6 +38,7 @@ import com.netflix.zuul.FilterLoader;
 import com.netflix.zuul.FilterUsageNotifier;
 import com.netflix.zuul.RequestCompleteHandler;
 import com.netflix.zuul.context.SessionContextDecorator;
+import com.netflix.zuul.message.http.CookieParser;
 import com.netflix.zuul.netty.ratelimiting.NullChannelHandlerProvider;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.group.ChannelGroup;
@@ -70,6 +71,7 @@ public abstract class BaseServerStartup
     protected final RequestCompleteHandler reqCompleteHandler;
     protected final FilterLoader filterLoader;
     protected final FilterUsageNotifier usageNotifier;
+    protected final CookieParser cookieParser;
 
     private Map<? extends SocketAddress, ? extends ChannelInitializer<?>> addrsToChannelInitializers;
     private ClientConnectionsShutdown clientConnectionsShutdown;
@@ -82,7 +84,7 @@ public abstract class BaseServerStartup
                              RequestCompleteHandler reqCompleteHandler, Registry registry,
                              DirectMemoryMonitor directMemoryMonitor, EventLoopGroupMetrics eventLoopGroupMetrics,
                              EurekaClient discoveryClient, ApplicationInfoManager applicationInfoManager,
-                             AccessLogPublisher accessLogPublisher)
+                             AccessLogPublisher accessLogPublisher, CookieParser cookieParser)
     {
         this.serverStatusManager = serverStatusManager;
         this.registry = registry;
@@ -95,6 +97,7 @@ public abstract class BaseServerStartup
         this.reqCompleteHandler = reqCompleteHandler;
         this.filterLoader = filterLoader;
         this.usageNotifier = usageNotifier;
+        this.cookieParser = cookieParser;
     }
 
     public Server server()
@@ -167,6 +170,7 @@ public abstract class BaseServerStartup
 
         channelDeps.set(ZuulDependencyKeys.sslClientCertCheckChannelHandlerProvider, new NullChannelHandlerProvider());
         channelDeps.set(ZuulDependencyKeys.rateLimitingChannelHandlerProvider, new NullChannelHandlerProvider());
+        channelDeps.set(ZuulDependencyKeys.cookieParser, cookieParser);
     }
 
     /**

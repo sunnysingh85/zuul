@@ -19,10 +19,7 @@ package com.netflix.zuul.message.http;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.netflix.zuul.context.SessionContext;
 import com.netflix.zuul.message.Headers;
@@ -238,5 +235,20 @@ public class HttpRequestMessageImplTest {
         assertEquals("BlahId=12345; something=67890;", HttpRequestMessageImpl.cleanCookieHeader("BlahId=12345; something=67890;"));
         assertEquals(" BlahId=12345; something=67890;", HttpRequestMessageImpl.cleanCookieHeader(" Secure, BlahId=12345; Secure, something=67890;"));
         assertEquals("", HttpRequestMessageImpl.cleanCookieHeader(""));
+    }
+
+    @Test
+    public void testCookieParserIsInvoked() {
+        // setup:
+        CookieParser cookieParser = mock(CookieParser.class);
+        Headers headers = new Headers();
+        request = new HttpRequestMessageImpl(new SessionContext(), null, null, null, null, headers,
+                "192.168.0.2", "https", 7002, "localhost", cookieParser);
+
+        // when:
+        request.parseCookies();
+
+        // then:
+        verify(cookieParser, times(1)).parseCookies(headers);
     }
 }

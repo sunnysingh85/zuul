@@ -91,19 +91,34 @@ public class HttpRequestMessageImpl implements HttpRequestMessage
     private String reconstructedUri = null;
     private String pathAndQuery = null;
     private String infoForLogging = null;
+    private final CookieParser cookieParser;
 
 
     public HttpRequestMessageImpl(SessionContext context, String protocol, String method, String path,
                                   HttpQueryParams queryParams, Headers headers, String clientIp, String scheme,
                                   int port, String serverName)
     {
-        this(context, protocol, method, path, queryParams, headers, clientIp, scheme, port, serverName, false);
+        this(context, protocol, method, path, queryParams, headers, clientIp, scheme, port, serverName, false, null);
+    }
+
+    public HttpRequestMessageImpl(SessionContext context, String protocol, String method, String path,
+                                  HttpQueryParams queryParams, Headers headers, String clientIp, String scheme,
+                                  int port, String serverName, CookieParser cookieParser)
+    {
+        this(context, protocol, method, path, queryParams, headers, clientIp, scheme, port, serverName, false, cookieParser);
     }
 
     public HttpRequestMessageImpl(SessionContext context, String protocol, String method, String path,
                                   HttpQueryParams queryParams, Headers headers, String clientIp, String scheme,
                                   int port, String serverName,
-                                  boolean immutable)
+                                  boolean immutable) {
+        this(context, protocol, method, path, queryParams, headers, clientIp, scheme, port, serverName, immutable, null);
+    }
+
+    public HttpRequestMessageImpl(SessionContext context, String protocol, String method, String path,
+                                  HttpQueryParams queryParams, Headers headers, String clientIp, String scheme,
+                                  int port, String serverName,
+                                  boolean immutable, CookieParser cookieParser)
     {
         this.immutable = immutable;
         this.message = new ZuulMessageImpl(context, headers);
@@ -123,6 +138,7 @@ public class HttpRequestMessageImpl implements HttpRequestMessage
         this.scheme = scheme;
         this.port = port;
         this.serverName = serverName;
+        this.cookieParser = cookieParser;
     }
 
     private void immutableCheck()
@@ -346,6 +362,12 @@ public class HttpRequestMessageImpl implements HttpRequestMessage
     @Override
     public Cookies reParseCookies()
     {
+        // Use cookie parser if we have one registered.
+        if (cookieParser != null) {
+            return cookieParser.parseCookies(getHeaders());
+        }
+
+        // Parse locally
         Cookies cookies = new Cookies();
         for (String aCookieHeader : getHeaders().get(HttpHeaderNames.COOKIE))
         {

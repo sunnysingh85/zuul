@@ -24,6 +24,7 @@ import com.netflix.zuul.FilterLoader;
 import com.netflix.zuul.FilterUsageNotifier;
 import com.netflix.zuul.RequestCompleteHandler;
 import com.netflix.zuul.context.SessionContextDecorator;
+import com.netflix.zuul.message.http.CookieParser;
 import com.netflix.zuul.netty.server.*;
 import com.netflix.zuul.netty.server.http2.Http2SslChannelInitializer;
 import com.netflix.zuul.netty.server.push.PushConnectionRegistry;
@@ -80,10 +81,10 @@ public class SampleServerStartup extends BaseServerStartup {
                                DirectMemoryMonitor directMemoryMonitor, EventLoopGroupMetrics eventLoopGroupMetrics,
                                EurekaClient discoveryClient, ApplicationInfoManager applicationInfoManager,
                                AccessLogPublisher accessLogPublisher, PushConnectionRegistry pushConnectionRegistry,
-                               SamplePushMessageSenderInitializer pushSenderInitializer) {
+                               SamplePushMessageSenderInitializer pushSenderInitializer, CookieParser cookieParser) {
         super(serverStatusManager, filterLoader, sessionCtxDecorator, usageNotifier, reqCompleteHandler, registry,
                 directMemoryMonitor, eventLoopGroupMetrics, discoveryClient, applicationInfoManager,
-                accessLogPublisher);
+                accessLogPublisher, cookieParser);
         this.pushConnectionRegistry = pushConnectionRegistry;
         this.pushSenderInitializer = pushSenderInitializer;
     }

@@ -22,15 +22,11 @@ import com.netflix.zuul.context.SessionContextDecorator;
 import com.netflix.zuul.context.CommonContextKeys;
 import com.netflix.zuul.exception.ZuulException;
 import com.netflix.zuul.message.Headers;
-import com.netflix.zuul.message.http.HttpQueryParams;
-import com.netflix.zuul.message.http.HttpRequestMessage;
-import com.netflix.zuul.message.http.HttpRequestMessageImpl;
-import com.netflix.zuul.message.http.HttpResponseMessage;
+import com.netflix.zuul.message.http.*;
 import com.netflix.zuul.netty.ChannelUtils;
 import com.netflix.zuul.netty.server.ssl.SslHandshakeInfoHandler;
 import com.netflix.zuul.passport.CurrentPassport;
 import com.netflix.zuul.passport.PassportState;
-import com.netflix.zuul.stats.status.StatusCategory;
 import com.netflix.zuul.stats.status.StatusCategoryUtils;
 import com.netflix.zuul.stats.status.ZuulStatusCategory;
 import com.netflix.zuul.util.HttpUtils;
@@ -41,9 +37,9 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.unix.Errors;
-import io.netty.handler.codec.TooLongFrameException;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import com.netflix.netty.common.SourceAddressChannelHandler;
@@ -69,6 +65,7 @@ public class ClientRequestReceiver extends ChannelDuplexHandler {
 
     private HttpRequestMessage zuulRequest;
     private HttpRequest clientRequest;
+    private final CookieParser cookieParser;
 
     private static final Logger LOG = LoggerFactory.getLogger(ClientRequestReceiver.class);
     private static final String SCHEME_HTTP = "http";
@@ -78,8 +75,9 @@ public class ClientRequestReceiver extends ChannelDuplexHandler {
     public static final AttributeKey<Boolean> ATTR_LAST_CONTENT_RECEIVED = AttributeKey.newInstance("_last_content_received");
 
 
-    public ClientRequestReceiver(SessionContextDecorator decorator) {
+    public ClientRequestReceiver(SessionContextDecorator decorator, CookieParser cookieParser) {
         this.decorator = decorator;
+        this.cookieParser = cookieParser;
     }
 
     public static HttpRequestMessage getRequestFromChannel(Channel ch) {
@@ -287,7 +285,8 @@ public class ClientRequestReceiver extends ChannelDuplexHandler {
                 clientIp,
                 scheme,
                 port,
-                serverName
+                serverName,
+                cookieParser
         );
 
         // Try to decide if this request has a body or not based on the headers (as we won't yet have
